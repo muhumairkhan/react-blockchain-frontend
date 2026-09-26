@@ -1,5 +1,5 @@
-import { sha256 } from '@noble/hashes/sha256';
-import { secp256k1 } from '@noble/curves/secp256k1';
+import { sha256 } from '@noble/hashes/sha2.js';
+import { secp256k1 } from '@noble/curves/secp256k1.js';
 
 // ---- byte/hex/base64 helpers ----------------------------------------------
 function bytesToHex(bytes) {
@@ -16,9 +16,7 @@ function bytesToBase64(bytes) {
   return btoa(bin);
 }
 
-// ---- PEM (SPKI, public key only — private key never leaves this module) --
-// secp256k1 SPKI header is fixed-length since the curve is fixed; the only
-// variable part is the 64-byte X||Y point that follows.
+// ---- PEM (SPKI, public key only) ------------------------------------------
 const SPKI_PREFIX_HEX = '3056301006072a8648ce3d020106052b8104000a03420004';
 
 function toPem(derBytes, label) {
@@ -27,15 +25,15 @@ function toPem(derBytes, label) {
 }
 
 function publicKeyBytesToPem(pubKeyBytes /* 65 bytes, 04||X||Y */) {
-  const xy = bytesToHex(pubKeyBytes).slice(2); // drop the leading 04; SPKI prefix already has it
+  const xy = bytesToHex(pubKeyBytes).slice(2); // drop leading 04; prefix already has it
   return toPem(hexToBytes(SPKI_PREFIX_HEX + xy), 'PUBLIC KEY');
 }
 
 // ---- keys -------------------------------------------------------------
 export function generateWalletKeyPair() {
-  const privateKeyBytes = secp256k1.utils.randomPrivateKey();
-  const publicKeyBytes = secp256k1.getPublicKey(privateKeyBytes, false); // uncompressed
-  return { privateKeyBytes, publicKey: publicKeyBytesToPem(publicKeyBytes) };
+  const { secretKey } = secp256k1.keygen();
+  const publicKeyBytes = secp256k1.getPublicKey(secretKey, false); // false = uncompressed (65 bytes)
+  return { privateKeyBytes: secretKey, publicKey: publicKeyBytesToPem(publicKeyBytes) };
 }
 
 export function sha256Hex(str) {
@@ -46,10 +44,16 @@ export function addressFromPublicKey(publicKeyPem) {
   return '0x' + sha256Hex(publicKeyPem).slice(-40);
 }
 
-/** Same digest + curve as core's crypto.ts sign(): sha256(data), secp256k1, DER, hex. */
+/**
+ * Matches core's crypto.ts sign(): Node's createSign('SHA256') hashes `data`
+ * internally once, then ECDSA-signs the digest, DER-encoded.
+ * noble v2's default (prehash: true) does the same single sha256 hash
+ * internally — so we pass the RAW string bytes, not a pre-hashed digest.
+ */
 export function sign(dataString, privateKeyBytes) {
-  const digest = sha256(new TextEncoder().encode(dataString));
-  return secp256k1.sign(digest, privateKeyBytes).toDERHex();
+  const msgBytes = new TextEncoder().encode(dataString);
+  const sigBytes = secp256k1.sign(msgBytes, privateKeyBytes, { format: 'der' });
+  return bytesToHex(sigBytes);
 }
 
 // ---- encryption at rest (PBKDF2 + AES-256-GCM via WebCrypto) -------------
@@ -71,7 +75,6 @@ export async function encryptPrivateKey(privateKeyBytes, passphrase) {
   return { salt: bytesToHex(salt), iv: bytesToHex(iv), ciphertext: bytesToHex(new Uint8Array(ct)) };
 }
 
-/** Throws on wrong passphrase or tampered data — fail closed, same as core's crypto.ts. */
 export async function decryptPrivateKey(enc, passphrase) {
   const key = await deriveAesKey(passphrase, hexToBytes(enc.salt));
   const pt = await window.crypto.subtle.decrypt(

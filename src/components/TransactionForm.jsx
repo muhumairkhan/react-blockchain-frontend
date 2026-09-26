@@ -42,6 +42,7 @@ export default function TransactionForm({ nodeUrl, refresh }) {
     setSubmitting(true);
     try {
       const account = await api.getAccount(nodeUrl, wallet.address);
+      console.log(account);
       const tx = await buildAndSignTransaction({
         walletName: wallet.name,
         passphrase,
