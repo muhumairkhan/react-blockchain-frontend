@@ -6,7 +6,7 @@ import TransactionForm from './components/TransactionForm';
 import PendingTable from './components/PendingTable';
 import BlocksTable from './components/BlocksTable';
 
-const POLL_INTERVAL_MS = 1500;
+const POLL_INTERVAL_MS = 2000;
 
 export default function App() {
   const [nodeUrl, setNodeUrl] = useState('http://localhost:3000');
