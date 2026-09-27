@@ -4,14 +4,26 @@ import { buildAndSignTransaction } from '../lib/transaction';
 import { useWallet } from "./../app/context/WalletContext";
 
 export default function TransactionForm({ nodeUrl, refresh }) {
-  // 1. Pull the active, synchronized wallet from global Context
-  const { wallet } = useWallet();
-  console.log(wallet)
+  // Pull the pre-loaded global wallet data and state flag from your Context layer
+  const { selected, wallet, isLoaded, syncWalletAndNodeDetails } = useWallet();
 
   const [form, setForm] = useState({ to: '', amount: '' });
   const [passphrase, setPassphrase] = useState('');
   const [txMessage, setTxMessage] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // Prevent UI rendering race conditions if Context initialization hasn't finished reading storage
+  if (!isLoaded) {
+    return (
+      <section className="panel panel-wide">
+        <p className="panel-note">Resolving active wallet parameters...</p>
+      </section>
+    );
+  }
+
+  function refreshWallet() {
+    syncWalletAndNodeDetails(selected, nodeUrl)
+  }
 
   async function handleSubmitTx(e) {
     e.preventDefault();
@@ -19,7 +31,7 @@ export default function TransactionForm({ nodeUrl, refresh }) {
 
     const sendAmount = Number(form.amount);
     
-    // 2. Structural valid state checks
+    // Structural validation checks
     if (!wallet || !wallet.address || !form.to || !form.amount || Number.isNaN(sendAmount)) {
       setTxMessage({ kind: 'error', text: 'Please ensure an active wallet is loaded, and fill in "To" and "Amount" fields.' });
       return;
@@ -30,7 +42,7 @@ export default function TransactionForm({ nodeUrl, refresh }) {
       return;
     }
 
-    // 3. Balance validation guard clause
+    // Proactive Balance validation guard clause
     const currentBalance = Number(wallet.balance);
     if (!Number.isNaN(currentBalance) && sendAmount > currentBalance) {
       setTxMessage({ 
@@ -41,8 +53,10 @@ export default function TransactionForm({ nodeUrl, refresh }) {
     }
 
     setSubmitting(true);
+
+
     try {
-      // 4. Fetch the latest live nonce directly right before signing to prevent race conditions
+      // Fetch the absolute latest live nonce directly right before signing to prevent execution collisions
       const account = await api.getAccount(nodeUrl, wallet.address);
       
       const tx = await buildAndSignTransaction({
@@ -60,17 +74,21 @@ export default function TransactionForm({ nodeUrl, refresh }) {
       setTxMessage({ kind: 'success', text: `Submitted: ${wallet.address} → ${form.to} (${sendAmount})` });
       setForm({ to: '', amount: '' });
       setPassphrase('');
+
+      // update wallet details
+      syncWalletAndNodeDetails(selected, nodeUrl);
       
-      // Call parent refresh triggers if supplied
+      // Call parent refresh layout routines if supplied
       if (refresh) refresh();
     } catch (err) {
       setTxMessage({ kind: 'error', text: err instanceof Error ? err.message : 'Submit failed' });
     } finally {
+
       setSubmitting(false);
     }
   }
 
-  // Convert context properties to clean numbers for safe logic fallbacks
+  // Pre-calculate visual states for real-time warning indicators
   const availableBalance = wallet?.balance !== undefined ? wallet.balance : '—';
   const parsedBalance = Number(wallet?.balance);
   const parsedAmount = Number(form.amount);
@@ -80,7 +98,7 @@ export default function TransactionForm({ nodeUrl, refresh }) {
     <section className="panel panel-wide">
       <h2>Submit transaction</h2>
       
-      {/* 5. UI enhancement: Informative active user account meta card layout */}
+      {/* Informative Active Wallet Summary Module */}
       {wallet && wallet.address ? (
         <div className="wallet-summary-banner" style={{ marginBottom: '1.5rem', padding: '1px' }}>
           <p className="panel-note">
@@ -88,11 +106,22 @@ export default function TransactionForm({ nodeUrl, refresh }) {
           </p>
           <p className={`panel-note ${isOverspending ? 'text-danger' : ''}`}>
             <strong>Available Balance:</strong> <span className="mono-value">{availableBalance}</span>
-            {isOverspending && <span style={{ color: 'red', marginLeft: '10px', fontSize: '0.9em' }}>⚠️ Exceeds Available Funds</span>}
+            <span> | </span>
+            <span 
+              style={{ cursor: 'pointer', textDecoration: 'underline' }} 
+              onClick={refreshWallet}
+            >
+              Refresh
+            </span>
+            {isOverspending && (
+              <span style={{ color: 'red', marginLeft: '10px', fontSize: '0.9em', fontWeight: 'bold' }}>
+                ⚠️ Exceeds Available Funds
+              </span>
+            )}
           </p>
         </div>
       ) : (
-        <p className="panel-note text-warning">⚠️ No wallet active. Select or connect a wallet first.</p>
+        <p className="panel-note text-warning">⚠️ No wallet active. Create or select a wallet first.</p>
       )}
 
       <form className="tx-form" onSubmit={handleSubmitTx}>
@@ -101,7 +130,7 @@ export default function TransactionForm({ nodeUrl, refresh }) {
             value={form.to} 
             onChange={(e) => setForm({ ...form, to: e.target.value })} 
             placeholder="0x..." 
-            disabled={!wallet?.address}
+            disabled={!wallet?.address || submitting}
           />
         </label>
         
@@ -111,8 +140,8 @@ export default function TransactionForm({ nodeUrl, refresh }) {
             onChange={(e) => setForm({ ...form, amount: e.target.value })} 
             inputMode="decimal"
             placeholder="0.0"
-            disabled={!wallet?.address}
-            className={isOverspending ? 'input-error' : ''}
+            disabled={!wallet?.address || submitting}
+            style={isOverspending ? { borderColor: 'red', backgroundColor: '#fff5f5' } : {}}
           />
         </label>
         
@@ -122,7 +151,7 @@ export default function TransactionForm({ nodeUrl, refresh }) {
             value={passphrase} 
             onChange={(e) => setPassphrase(e.target.value)} 
             placeholder="Wallet decryption passphrase"
-            disabled={!wallet?.address}
+            disabled={!wallet?.address || submitting}
           />
         </label>
         

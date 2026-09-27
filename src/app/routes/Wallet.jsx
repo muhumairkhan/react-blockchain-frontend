@@ -6,14 +6,7 @@ import { useWallet } from "./../context/WalletContext";
 
 function Wallet() {
   const { nodeUrl } = useOutletContext();
-  const { 
-    wallet, 
-    selected, 
-    wallets, 
-    setWallets, 
-    setSelected, 
-    syncWalletAndNodeDetails 
-  } = useWallet();
+  const { wallet, selected, wallets, setSelected, syncWalletAndNodeDetails, isLoaded } = useWallet();
 
   const [newWalletName, setNewWalletName] = useState('');
   const [newWalletPass, setNewWalletPass] = useState('');
@@ -21,27 +14,6 @@ function Wallet() {
   const [accountLoading, setAccountLoading] = useState(false);
   const [copied, setCopied] = useState(false);
 
-
-  useEffect(() => {
-    const list = listWallets() || [];
-    setWallets(list);
-
-    // If local storage has a valid pre-selected string, use it.
-    // Otherwise, fall back to the first wallet in the array.
-    let currentSelection = selected;
-    
-    if (!currentSelection && list.length > 0) {
-      currentSelection = list[0];
-    }
-    
-    if (currentSelection) {
-      setSelected(currentSelection); // Persists to storage if it was a fallback
-      syncWalletAndNodeDetails(currentSelection, nodeUrl);
-    }
-  }, [nodeUrl]);
-
-
-    console.log(wallet)
 
   const handleSelectChange = async (e) => {
     const targetWalletName = e.target.value;
