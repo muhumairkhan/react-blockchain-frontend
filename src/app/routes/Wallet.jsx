@@ -1,13 +1,16 @@
 import { listWallets, loadWalletMeta, createWallet } from './../../lib/wallet';
-import {useState} from "react"
+import { useState, useEffect } from "react"
+import { api } from "./../../api"
 
 function Wallet() {
-
+    const [nodeUrl, setNodeUrl] = useState('http://localhost:3000');
     const [wallets, setWallets] = useState(listWallets());
     const [newWalletName, setNewWalletName] = useState();
     const [newWalletPass, setNewWalletPass] = useState();
     const [selected, setSelected] = useState(wallets[0] ?? '');
     const [walletMsg, setWalletMsg] = useState('');
+
+    const [account, setAccount] = useState({})
 
     const wallet = selected ? loadWalletMeta(selected) : null;
 
@@ -22,6 +25,21 @@ function Wallet() {
         } catch (err) {
             setWalletMsg({ kind: 'error', text: err.message });
         }
+    }
+
+    if (wallet != null) {
+        useEffect(function(){
+
+            async function getAccount(){
+                let accountData = await api.getAccount(nodeUrl, wallet.address);
+                if (accountData != null) {
+                    setAccount(accountData)
+                }
+            }
+
+            getAccount()
+            
+        }, [])
     }
 
     return  (
@@ -44,6 +62,7 @@ function Wallet() {
           </select>
           <div></div>
           {wallet && <p className="panel-note mono-value">{wallet.address}</p>}
+          {Object.keys(account).length > 0 &&  <p className="panel-note mono-value">Balance {account.balance}</p>}
         </> 
       } 
         {walletMsg && <p className={`inline-message ${walletMsg.kind}`}>{walletMsg.text}</p>}
