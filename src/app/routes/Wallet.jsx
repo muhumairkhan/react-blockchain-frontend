@@ -1,44 +1,55 @@
-import { listWallets, loadWalletMeta, createWallet } from './../../lib/wallet';
-import { useCallback, useEffect, useState } from 'react';
+// Wallet.jsx
+import { listWallets, createWallet } from './../../lib/wallet';
+import { useEffect, useState } from 'react';
 import { useOutletContext } from 'react-router';
-import { api } from './../../api';
+import { useWallet } from "./../context/WalletContext";
 
 function Wallet() {
   const { nodeUrl } = useOutletContext();
+  const { 
+    wallet, 
+    selected, 
+    wallets, 
+    setWallets, 
+    setSelected, 
+    syncWalletAndNodeDetails 
+  } = useWallet();
 
-  const [wallets, setWallets] = useState(listWallets());
-  const [selected, setSelected] = useState(wallets[0] ?? '');
   const [newWalletName, setNewWalletName] = useState('');
   const [newWalletPass, setNewWalletPass] = useState('');
   const [walletMsg, setWalletMsg] = useState(null);
-
-  const [account, setAccount] = useState(null);
   const [accountLoading, setAccountLoading] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const wallet = selected ? loadWalletMeta(selected) : null;
-
-  // Hooks always run in the same order now (no more conditional useEffect),
-  // and this also refetches whenever you switch wallets, not just on mount.
-  const refreshAccount = useCallback(async () => {
-    if (!wallet) {
-      setAccount(null);
-      return;
-    }
-    setAccountLoading(true);
-    try {
-      const accountData = await api.getAccount(nodeUrl, wallet.address);
-      setAccount(accountData ?? null);
-    } catch {
-      setAccount(null);
-    } finally {
-      setAccountLoading(false);
-    }
-  }, [nodeUrl, wallet?.address]);
 
   useEffect(() => {
-    refreshAccount();
-  }, [refreshAccount]);
+    const list = listWallets() || [];
+    setWallets(list);
+
+    // If local storage has a valid pre-selected string, use it.
+    // Otherwise, fall back to the first wallet in the array.
+    let currentSelection = selected;
+    
+    if (!currentSelection && list.length > 0) {
+      currentSelection = list[0];
+    }
+    
+    if (currentSelection) {
+      setSelected(currentSelection); // Persists to storage if it was a fallback
+      syncWalletAndNodeDetails(currentSelection, nodeUrl);
+    }
+  }, [nodeUrl]);
+
+
+    console.log(wallet)
+
+  const handleSelectChange = async (e) => {
+    const targetWalletName = e.target.value;
+    setSelected(targetWalletName);
+    setAccountLoading(true);
+    await syncWalletAndNodeDetails(targetWalletName, nodeUrl);
+    setAccountLoading(false);
+  };
 
   async function handleCreateWallet(e) {
     e.preventDefault();
@@ -48,28 +59,40 @@ function Wallet() {
     }
     try {
       const created = await createWallet(newWalletName, newWalletPass);
-      setWallets(listWallets());
+      const updatedList = listWallets() || [];
+      
+      setWallets(updatedList);
       setSelected(created.name);
       setNewWalletName('');
       setNewWalletPass('');
       setWalletMsg({ kind: 'success', text: `Wallet "${created.name}" created.` });
+      
+      setAccountLoading(true);
+      await syncWalletAndNodeDetails(created.name, nodeUrl);
+      setAccountLoading(false);
     } catch (err) {
       setWalletMsg({ kind: 'error', text: err.message });
     }
   }
 
   function handleCopyAddress() {
-    if (!wallet) return;
+    if (!wallet?.address) return;
     navigator.clipboard?.writeText(wallet.address);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   }
 
+  const triggerRefresh = async () => {
+    setAccountLoading(true);
+    await syncWalletAndNodeDetails(selected, nodeUrl);
+    setAccountLoading(false);
+  };
+
   return (
     <section className="panel panel-wide">
       <h2>Wallet</h2>
 
-      {wallets.length === 0 ? (
+     {(wallets || []).length === 0 ? (
         <form className="tx-form" onSubmit={handleCreateWallet}>
           <p className="panel-note">No wallets yet — create one to get started.</p>
           <label>
@@ -91,14 +114,14 @@ function Wallet() {
         <>
           <label className="wallet-select-label">
             Active wallet
-            <select value={selected} onChange={(e) => setSelected(e.target.value)}>
-              {wallets.map((w) => (
+            <select value={selected || ""} onChange={handleSelectChange}>
+              {(wallets || []).map((w) => (
                 <option key={w} value={w}>{w}</option>
               ))}
             </select>
           </label>
 
-          {wallet && (
+          {wallet && wallet.address && (
             <div className="wallet-card">
               <div className="wallet-address-row">
                 <span className="mono-value">{wallet.address}</span>
@@ -111,19 +134,19 @@ function Wallet() {
                 <div className="wallet-stat">
                   <span className="wallet-stat-label">Balance</span>
                   <span className="wallet-stat-value">
-                    {accountLoading ? '…' : account ? account.balance : '—'}
+                    {accountLoading ? '…' : wallet.balance !== undefined ? wallet.balance : '—'}
                   </span>
                 </div>
                 <div className="wallet-stat">
                   <span className="wallet-stat-label">Nonce</span>
                   <span className="wallet-stat-value">
-                    {accountLoading ? '…' : account ? account.nonce : '—'}
+                    {accountLoading ? '…' : wallet.nonce !== undefined ? wallet.nonce : '—'}
                   </span>
                 </div>
                 <div className="wallet-stat">
                   <span className="wallet-stat-label">Next nonce</span>
                   <span className="wallet-stat-value">
-                    {accountLoading ? '…' : account ? account.nextNonce : '—'}
+                    {accountLoading ? '…' : wallet.nextNonce !== undefined ? wallet.nextNonce : '—'}
                   </span>
                 </div>
               </div>
@@ -131,7 +154,7 @@ function Wallet() {
               <button
                 type="button"
                 className="btn-secondary btn-small"
-                onClick={refreshAccount}
+                onClick={triggerRefresh}
                 disabled={accountLoading}
               >
                 {accountLoading ? 'Refreshing…' : 'Refresh'}

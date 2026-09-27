@@ -1,62 +1,68 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { api } from '../api';
-import { listWallets, loadWalletMeta, createWallet } from '../lib/wallet';
 import { buildAndSignTransaction } from '../lib/transaction';
+import { useWallet } from "./../app/context/WalletContext";
 
 export default function TransactionForm({ nodeUrl, refresh }) {
-  const [wallets, setWallets] = useState(listWallets());
-  const [selected, setSelected] = useState(wallets[0] ?? '');
-  const [newWalletName, setNewWalletName] = useState('');
-  const [newWalletPass, setNewWalletPass] = useState('');
+  // 1. Pull the active, synchronized wallet from global Context
+  const { wallet } = useWallet();
+  console.log(wallet)
 
   const [form, setForm] = useState({ to: '', amount: '' });
   const [passphrase, setPassphrase] = useState('');
   const [txMessage, setTxMessage] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const wallet = selected ? loadWalletMeta(selected) : null;
-
-  async function handleCreateWallet(e) {
-    e.preventDefault();
-    try {
-      const created = await createWallet(newWalletName, newWalletPass);
-      setWallets(listWallets());
-      setSelected(created.name);
-      setNewWalletName('');
-      setNewWalletPass('');
-    } catch (err) {
-      setTxMessage({ kind: 'error', text: err.message });
-    }
-  }
-
   async function handleSubmitTx(e) {
     e.preventDefault();
     setTxMessage(null);
 
-    const amount = Number(form.amount);
-    if (!wallet || !form.to || !form.amount || Number.isNaN(amount)) {
-      setTxMessage({ kind: 'error', text: 'select a wallet, and fill in "to" and amount' });
+    const sendAmount = Number(form.amount);
+    
+    // 2. Structural valid state checks
+    if (!wallet || !wallet.address || !form.to || !form.amount || Number.isNaN(sendAmount)) {
+      setTxMessage({ kind: 'error', text: 'Please ensure an active wallet is loaded, and fill in "To" and "Amount" fields.' });
+      return;
+    }
+
+    if (sendAmount <= 0) {
+      setTxMessage({ kind: 'error', text: 'Transaction amount must be greater than 0.' });
+      return;
+    }
+
+    // 3. Balance validation guard clause
+    const currentBalance = Number(wallet.balance);
+    if (!Number.isNaN(currentBalance) && sendAmount > currentBalance) {
+      setTxMessage({ 
+        kind: 'error', 
+        text: `Insufficient funds. You are trying to send ${sendAmount}, but this wallet only has ${currentBalance} available.` 
+      });
       return;
     }
 
     setSubmitting(true);
     try {
+      // 4. Fetch the latest live nonce directly right before signing to prevent race conditions
       const account = await api.getAccount(nodeUrl, wallet.address);
-      console.log(account);
+      
       const tx = await buildAndSignTransaction({
         walletName: wallet.name,
         passphrase,
         publicKey: wallet.publicKey,
         from: wallet.address,
         to: form.to,
-        amount,
-        nonce: account.nextNonce,
+        amount: sendAmount,
+        nonce: account?.nextNonce ?? wallet.nextNonce ?? 0,
       });
+
       await api.submitTransaction(nodeUrl, tx);
-      setTxMessage({ kind: 'success', text: `Submitted: ${wallet.address} → ${form.to} (${amount})` });
+      
+      setTxMessage({ kind: 'success', text: `Submitted: ${wallet.address} → ${form.to} (${sendAmount})` });
       setForm({ to: '', amount: '' });
       setPassphrase('');
-      refresh();
+      
+      // Call parent refresh triggers if supplied
+      if (refresh) refresh();
     } catch (err) {
       setTxMessage({ kind: 'error', text: err instanceof Error ? err.message : 'Submit failed' });
     } finally {
@@ -64,43 +70,71 @@ export default function TransactionForm({ nodeUrl, refresh }) {
     }
   }
 
+  // Convert context properties to clean numbers for safe logic fallbacks
+  const availableBalance = wallet?.balance !== undefined ? wallet.balance : '—';
+  const parsedBalance = Number(wallet?.balance);
+  const parsedAmount = Number(form.amount);
+  const isOverspending = !Number.isNaN(parsedBalance) && !Number.isNaN(parsedAmount) && parsedAmount > parsedBalance;
+
   return (
     <section className="panel panel-wide">
-      <h2>Wallet</h2>
-      {wallets.length === 0 ? (
-        <form className="tx-form" onSubmit={handleCreateWallet}>
-          <label>Wallet name
-            <input value={newWalletName} onChange={(e) => setNewWalletName(e.target.value)} placeholder="alice" />
-          </label>
-          <label>Passphrase
-            <input type="password" value={newWalletPass} onChange={(e) => setNewWalletPass(e.target.value)} />
-          </label>
-          <button type="submit" className="btn-secondary">Create wallet</button>
-        </form>
+      <h2>Submit transaction</h2>
+      
+      {/* 5. UI enhancement: Informative active user account meta card layout */}
+      {wallet && wallet.address ? (
+        <div className="wallet-summary-banner" style={{ marginBottom: '1.5rem', padding: '1px' }}>
+          <p className="panel-note">
+            <strong>Active Sender:</strong> <code className="mono-value">{wallet.address}</code>
+          </p>
+          <p className={`panel-note ${isOverspending ? 'text-danger' : ''}`}>
+            <strong>Available Balance:</strong> <span className="mono-value">{availableBalance}</span>
+            {isOverspending && <span style={{ color: 'red', marginLeft: '10px', fontSize: '0.9em' }}>⚠️ Exceeds Available Funds</span>}
+          </p>
+        </div>
       ) : (
-        <>
-          <select value={selected} onChange={(e) => setSelected(e.target.value)}>
-            {wallets.map((w) => <option key={w} value={w}>{w}</option>)}
-          </select>
-          {wallet && <p className="panel-note mono-value">{wallet.address}</p>}
-        </>
+        <p className="panel-note text-warning">⚠️ No wallet active. Select or connect a wallet first.</p>
       )}
 
-      <h2>Submit transaction</h2>
       <form className="tx-form" onSubmit={handleSubmitTx}>
         <label>To
-          <input value={form.to} onChange={(e) => setForm({ ...form, to: e.target.value })} placeholder="0x..." />
+          <input 
+            value={form.to} 
+            onChange={(e) => setForm({ ...form, to: e.target.value })} 
+            placeholder="0x..." 
+            disabled={!wallet?.address}
+          />
         </label>
+        
         <label>Amount
-          <input value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} inputMode="decimal" />
+          <input 
+            value={form.amount} 
+            onChange={(e) => setForm({ ...form, amount: e.target.value })} 
+            inputMode="decimal"
+            placeholder="0.0"
+            disabled={!wallet?.address}
+            className={isOverspending ? 'input-error' : ''}
+          />
         </label>
+        
         <label>Passphrase
-          <input type="password" value={passphrase} onChange={(e) => setPassphrase(e.target.value)} />
+          <input 
+            type="password" 
+            value={passphrase} 
+            onChange={(e) => setPassphrase(e.target.value)} 
+            placeholder="Wallet decryption passphrase"
+            disabled={!wallet?.address}
+          />
         </label>
-        <button type="submit" className="btn-primary" disabled={submitting || !wallet}>
-          {submitting ? 'Signing & sending…' : 'Send'}
+        
+        <button 
+          type="submit" 
+          className="btn-primary" 
+          disabled={submitting || !wallet?.address || isOverspending}
+        >
+          {submitting ? 'Signing & sending…' : isOverspending ? 'Insufficient Funds' : 'Send'}
         </button>
       </form>
+      
       {txMessage && <p className={`inline-message ${txMessage.kind}`}>{txMessage.text}</p>}
     </section>
   );

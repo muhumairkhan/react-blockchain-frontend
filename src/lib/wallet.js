@@ -4,13 +4,30 @@ import {
 } from './crypto';
 
 const PREFIX = 'poa-wallet:';
+const SELECTED_KEY = 'poa-wallet-selected'; 
+
 const key = (name) => `${PREFIX}${name}`;
+
+export function saveSelectedWalletName(name) {
+  if (!name) {
+    localStorage.removeItem(SELECTED_KEY);
+  } else {
+    localStorage.setItem(SELECTED_KEY, name);
+  }
+}
+
+export function loadSelectedWalletName() {
+  return localStorage.getItem(SELECTED_KEY) || '';
+}
 
 export function listWallets() {
   const out = [];
   for (let i = 0; i < localStorage.length; i++) {
     const k = localStorage.key(i);
-    if (k?.startsWith(PREFIX)) out.push(k.slice(PREFIX.length));
+    // Modified: Skip the selection management key to ensure it isn't listed as a wallet
+    if (k?.startsWith(PREFIX) && k !== SELECTED_KEY) {
+      out.push(k.slice(PREFIX.length));
+    }
   }
   return out;
 }
