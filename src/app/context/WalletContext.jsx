@@ -1,4 +1,4 @@
-import { createContext, useState, useContext, useCallback } from "react"
+import { createContext, useState, useContext, useCallback, useEffect } from "react"
 import { listWallets, loadWalletMeta, loadSelectedWalletName, saveSelectedWalletName } from './../../lib/wallet' 
 import { api } from './../../api'
 
@@ -10,14 +10,12 @@ let initialWallet = {
 
 export const WalletContext = createContext(null)
 
-export function WalletProvider({ children }) {
+export function WalletProvider({ children, nodeUrl }) { // Pass nodeUrl as a prop if accessible globally
     const [wallet, setWallet] = useState(initialWallet)
     const [wallets, setWallets] = useState([])
-    
-    // 1. Load active tracking name from local storage on bootstrap
     const [selected, setSelectedState] = useState(() => loadSelectedWalletName())
+    const [isLoaded, setIsLoaded] = useState(false); // Flag to stop UI rendering races
 
-    // 2. Dual state modification pipeline helper
     const setSelected = useCallback((walletName) => {
         setSelectedState(walletName);
         saveSelectedWalletName(walletName);
@@ -32,14 +30,15 @@ export function WalletProvider({ children }) {
         setSelected("")
     }
 
-    const syncWalletAndNodeDetails = useCallback(async (walletName, nodeUrl) => {
+    const syncWalletAndNodeDetails = useCallback(async (walletName, targetNodeUrl) => {
         if (!walletName) return
         
         const walletMeta = loadWalletMeta(walletName)
         if (!walletMeta) return
 
         try {
-            const nodeData = nodeUrl ? await api.getAccount(nodeUrl, walletMeta.address) : null
+            const url = targetNodeUrl || nodeUrl;
+            const nodeData = url ? await api.getAccount(url, walletMeta.address) : null
             
             setWallet({
                 ...walletMeta,
@@ -56,7 +55,26 @@ export function WalletProvider({ children }) {
                 nextNonce: '—'
             })
         }
-    }, [])
+    }, [nodeUrl])
+
+    // Runs globally once on load
+    useEffect(() => {
+        const list = listWallets() || [];
+        setWallets(list);
+
+        let currentSelection = selected;
+        
+        // Fallback constraint logic: if nothing saved, grab the first one
+        if (!currentSelection && list.length > 0) {
+            currentSelection = list[0];
+        }
+        
+        if (currentSelection) {
+            setSelected(currentSelection); 
+            syncWalletAndNodeDetails(currentSelection, nodeUrl);
+        }
+        setIsLoaded(true);
+    }, [nodeUrl, selected, setSelected, syncWalletAndNodeDetails]);
 
     return (
         <WalletContext value={{
@@ -64,10 +82,11 @@ export function WalletProvider({ children }) {
             selected, 
             wallets, 
             setWallets, 
-            setSelected, // Passes the updated storage-interceptor function safely
+            setSelected, 
             saveWallet, 
             resetWallet,
-            syncWalletAndNodeDetails
+            syncWalletAndNodeDetails,
+            isLoaded 
         }}>
             {children}
         </WalletContext>
