@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
-import { api } from './api';
-import Header from './components/Header';
-import StatusPanel from './components/StatusPanel';
-import TransactionForm from './components/TransactionForm';
-import PendingTable from './components/PendingTable';
-import BlocksTable from './components/BlocksTable';
+import { api } from './../../api';
+import Header from './../../components/Header';
+import StatusPanel from './../../components/StatusPanel';
+import TransactionForm from './../../components/TransactionForm';
+import PendingTable from './../../components/PendingTable';
+import BlocksTable from './../../components/BlocksTable';
 
 const POLL_INTERVAL_MS = 2000;
 
-export default function App() {
+export default function Home() {
   const [nodeUrl, setNodeUrl] = useState('http://localhost:3000');
   const [urlInput, setUrlInput] = useState(nodeUrl);
 
