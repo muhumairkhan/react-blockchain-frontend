@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useOutletContext } from 'react-router';
 import { api } from './../../api';
-import Header from './../../components/Header';
 import StatusPanel from './../../components/StatusPanel';
 import TransactionForm from './../../components/TransactionForm';
 import PendingTable from './../../components/PendingTable';
@@ -9,14 +9,14 @@ import BlocksTable from './../../components/BlocksTable';
 const POLL_INTERVAL_MS = 2000;
 
 export default function Home() {
-  const [nodeUrl, setNodeUrl] = useState('http://localhost:3000');
-  const [urlInput, setUrlInput] = useState(nodeUrl);
+  // nodeUrl + the connection-error setter now live in Layout, since the
+  // header (and the node you're pointed at) is shared across routes.
+  const { nodeUrl, setConnectionError } = useOutletContext();
 
   const [status, setStatus] = useState(null);
   const [blocks, setBlocks] = useState([]);
   const [pending, setPending] = useState([]);
   const [validators, setValidators] = useState([]);
-  const [connectionError, setConnectionError] = useState(null);
 
   const refresh = useCallback(async () => {
     try {
@@ -35,7 +35,7 @@ export default function Home() {
       setConnectionError(err instanceof Error ? err.message : 'Could not reach node');
       setStatus(null);
     }
-  }, [nodeUrl]);
+  }, [nodeUrl, setConnectionError]);
 
   useEffect(() => {
     refresh();
@@ -44,25 +44,11 @@ export default function Home() {
   }, [refresh]);
 
   return (
-    <div className="page">
-      <Header
-        nodeUrl={nodeUrl}
-        urlInput={urlInput}
-        setUrlInput={setUrlInput}
-        setNodeUrl={setNodeUrl}
-        connectionError={connectionError}
-      />
-
-      {connectionError && (
-        <div className="banner banner-error">Can't reach {nodeUrl} — {connectionError}</div>
-      )}
-
-      <main className="grid">
-        <StatusPanel status={status} validators={validators} />
-        <TransactionForm nodeUrl={nodeUrl} refresh={refresh} />
-        <PendingTable pending={pending} />
-        <BlocksTable blocks={blocks} />
-      </main>
-    </div>
+    <main className="grid">
+      <StatusPanel status={status} validators={validators} />
+      <TransactionForm nodeUrl={nodeUrl} refresh={refresh} />
+      <PendingTable pending={pending} />
+      <BlocksTable blocks={blocks} />
+    </main>
   );
 }
