@@ -6,7 +6,7 @@ import { useWallet } from "./../context/WalletContext";
 
 function Wallet() {
   const { nodeUrl } = useOutletContext();
-  const { wallet, selected, wallets, setSelected, syncWalletAndNodeDetails, isLoaded } = useWallet();
+  const { wallet, selected, wallets, setWallets, setSelected, syncWalletAndNodeDetails, isLoaded } = useWallet();
 
   const [newWalletName, setNewWalletName] = useState('');
   const [newWalletPass, setNewWalletPass] = useState('');
