@@ -36,6 +36,11 @@ export function generateWalletKeyPair() {
   return { privateKeyBytes: secretKey, publicKey: publicKeyBytesToPem(publicKeyBytes) };
 }
 
+/** Recomputes the SPKI PEM public key from a private key — used to verify an imported keystore is self-consistent. */
+export function publicKeyPemFromPrivateKey(privateKeyBytes) {
+  return publicKeyBytesToPem(secp256k1.getPublicKey(privateKeyBytes, false));
+}
+
 export function sha256Hex(str) {
   return bytesToHex(sha256(new TextEncoder().encode(str)));
 }

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { NavLink, Outlet } from "react-router";
 import Header from "./../components/Header";
+import { WalletProvider } from "./context/WalletContext";
 
 // Sits above both routes in router.jsx, so Home and Wallet share this one
 // Header instance (and the nodeUrl it points at) instead of each keeping
@@ -33,7 +34,10 @@ export default function Layout() {
         <div className="banner banner-error">Can't reach {nodeUrl} — {connectionError}</div>
       )}
 
-      <Outlet context={{ nodeUrl, setConnectionError }} />
+      {/* Provider lives here (not in index.jsx) so it can receive nodeUrl */}
+      <WalletProvider nodeUrl={nodeUrl}>
+        <Outlet context={{ nodeUrl, setConnectionError }} />
+      </WalletProvider>
     </div>
   );
 }
