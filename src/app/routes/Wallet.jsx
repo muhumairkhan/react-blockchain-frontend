@@ -15,7 +15,8 @@ function downloadJson(filename, obj) {
 
 function Wallet() {
   const { nodeUrl } = useOutletContext();
-  const { wallet, selected, wallets, setWallets, setSelected, resetWallet, syncWalletAndNodeDetails } = useWallet();
+
+  const { wallet, selected, wallets, setWallets, setSelected, resetWallet, syncWalletAndNodeDetails, isLoaded } = useWallet();
 
   const [newWalletName, setNewWalletName] = useState('');
   const [newWalletPass, setNewWalletPass] = useState('');

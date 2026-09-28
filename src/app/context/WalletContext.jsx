@@ -1,3 +1,4 @@
+// WalletContext.jsx
 import { createContext, useState, useContext, useCallback, useEffect } from "react"
 import { listWallets, loadWalletMeta, loadSelectedWalletName, saveSelectedWalletName } from './../../lib/wallet' 
 import { api } from './../../api'
@@ -10,11 +11,11 @@ let initialWallet = {
 
 export const WalletContext = createContext(null)
 
-export function WalletProvider({ children, nodeUrl }) { // Pass nodeUrl as a prop if accessible globally
+export function WalletProvider({ children, nodeUrl }) {
     const [wallet, setWallet] = useState(initialWallet)
     const [wallets, setWallets] = useState([])
     const [selected, setSelectedState] = useState(() => loadSelectedWalletName())
-    const [isLoaded, setIsLoaded] = useState(false); // Flag to stop UI rendering races
+    const [isLoaded, setIsLoaded] = useState(false)
 
     const setSelected = useCallback((walletName) => {
         setSelectedState(walletName);
@@ -57,24 +58,27 @@ export function WalletProvider({ children, nodeUrl }) { // Pass nodeUrl as a pro
         }
     }, [nodeUrl])
 
-    // Runs globally once on load
+    // Runs ONCE on application load
     useEffect(() => {
         const list = listWallets() || [];
         setWallets(list);
 
-        let currentSelection = selected;
+        // Read directly from the persistent storage function to avoid state dependency races
+        const savedSelection = loadSelectedWalletName();
+        let currentSelection = savedSelection;
         
-        // Fallback constraint logic: if nothing saved, grab the first one
         if (!currentSelection && list.length > 0) {
             currentSelection = list[0];
         }
         
         if (currentSelection) {
             setSelected(currentSelection); 
+            // Execute the balance syncing directly using the resolved linear variable
             syncWalletAndNodeDetails(currentSelection, nodeUrl);
         }
+        
         setIsLoaded(true);
-    }, [nodeUrl, selected, setSelected, syncWalletAndNodeDetails]);
+    }, [nodeUrl]);
 
     return (
         <WalletContext value={{
