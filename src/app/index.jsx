@@ -1,11 +1,5 @@
-import {AppRouter} from "./router"
-import { WalletProvider } from "./context/WalletContext"
+import { AppRouter } from "./router"
 
 export const App = () => {
-  console.log("index")
-  return (
-    <WalletProvider>
-      <AppRouter />
-    </WalletProvider>
-  )
+  return <AppRouter />
 }

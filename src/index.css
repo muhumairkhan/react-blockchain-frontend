@@ -416,3 +416,213 @@ input {
   opacity: 0.75;
   margin-bottom: 0.5rem;
 }
+
+/* Nav added in Layout.jsx */
+.main-nav {
+  display: flex;
+  gap: 1rem;
+  padding: 0.5rem 0 1rem;
+}
+.nav-link {
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  text-decoration: none;
+  color: inherit;
+  opacity: 0.7;
+}
+.nav-link.active {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.06);
+  font-weight: 600;
+}
+
+/* Wallet page */
+.wallet-select-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 1rem;
+  max-width: 16rem;
+}
+
+.wallet-card {
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.wallet-address-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.wallet-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.wallet-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.wallet-stat-label {
+  font-size: 0.75rem;
+  opacity: 0.65;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.wallet-stat-value {
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.btn-small {
+  padding: 0.25rem 0.6rem;
+  font-size: 0.85rem;
+}
+
+.wallet-create-details summary {
+  cursor: pointer;
+  opacity: 0.75;
+  margin-bottom: 0.5rem;
+}
+
+/* Wallet actions row + import form */
+.wallet-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.tx-form textarea {
+  width: 100%;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.8rem;
+  resize: vertical;
+}
+
+/* Nav added in Layout.jsx */
+.main-nav {
+  display: flex;
+  gap: 1rem;
+  padding: 0.5rem 0 1rem;
+}
+.nav-link {
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  text-decoration: none;
+  color: inherit;
+  opacity: 0.7;
+}
+.nav-link.active {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.06);
+  font-weight: 600;
+}
+
+/* Wallet page */
+.wallet-select-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 1rem;
+  max-width: 16rem;
+}
+
+.wallet-card {
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.wallet-address-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.wallet-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.wallet-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.wallet-stat-label {
+  font-size: 0.75rem;
+  opacity: 0.65;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.wallet-stat-value {
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.btn-small {
+  padding: 0.25rem 0.6rem;
+  font-size: 0.85rem;
+}
+
+.wallet-create-details summary {
+  cursor: pointer;
+  opacity: 0.75;
+  margin-bottom: 0.5rem;
+}
+
+/* Wallet actions row + import form */
+.wallet-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.tx-form textarea {
+  width: 100%;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.8rem;
+  resize: vertical;
+}
+
+/* Danger zone */
+.wallet-danger summary {
+  color: #c0392b;
+}
+.btn-danger {
+  background: #c0392b;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.btn-danger:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
