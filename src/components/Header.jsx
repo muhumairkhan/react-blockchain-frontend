@@ -1,8 +1,8 @@
 import React from 'react';
 
-const QUICK_PORTS = [3000, 3001, 3002, 3003];
+//const QUICK_PORTS = [3000, 3001, 3002, 3003];
 
-export default function Header({ nodeUrl, urlInput, setUrlInput, setNodeUrl, connectionError }) {
+export default function Header({ nodeUrl, urlInput, setUrlInput, setNodeUrl, connectionError, validators }) {
   function handleConnect(e) {
     e.preventDefault();
     setNodeUrl(urlInput.replace(/\/+$/, ''));
@@ -17,12 +17,13 @@ export default function Header({ nodeUrl, urlInput, setUrlInput, setNodeUrl, con
 
       <form className="connect-form" onSubmit={handleConnect}>
         <div className="quick-ports">
-          {QUICK_PORTS.map((port) => {
-            const url = `http://localhost:${port}`;
+          {validators.map((validator) => {
+            const node = validator.node;
+            const url = `http://localhost:${node.apiPort}`;
             return (
               <button
                 type="button"
-                key={port}
+                key={node.apiPort}
                 className="quick-port"
                 data-active={nodeUrl === url}
                 onClick={() => {
@@ -30,7 +31,7 @@ export default function Header({ nodeUrl, urlInput, setUrlInput, setNodeUrl, con
                   setNodeUrl(url);
                 }}
               >
-                :{port}
+                :{node.apiPort}
               </button>
             );
           })}
