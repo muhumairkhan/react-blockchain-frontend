@@ -24,6 +24,7 @@ export const api = {
   getBlocks: (baseUrl) => request(baseUrl, '/blocks'),
   getPending: (baseUrl) => request(baseUrl, '/pending'),
   getValidators: (baseUrl) => request(baseUrl, '/validators'),
+  getPeers: (baseUrl) => request(baseUrl, '/peers'),
   getAccount: (baseUrl, address) => request(baseUrl, `/accounts/${address}`),
 
   submitTransaction: (baseUrl, tx) =>
