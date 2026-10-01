@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useOutletContext } from 'react-router';
 import { api } from './../../api';
 import StatusPanel from './../../components/StatusPanel';
+import PeersPanel from './../../components/PeersPanel';
 import TransactionForm from './../../components/TransactionForm';
 import PendingTable from './../../components/PendingTable';
 import BlocksTable from './../../components/BlocksTable';
@@ -17,23 +18,28 @@ export default function Home() {
   const [blocks, setBlocks] = useState([]);
   const [pending, setPending] = useState([]);
   const [validators, setValidators] = useState([]);
+  const [peers, setPeers] = useState(null);
 
   const refresh = useCallback(async () => {
     try {
-      const [statusRes, blocksRes, pendingRes, validatorsRes] = await Promise.all([
+      const [statusRes, blocksRes, pendingRes, validatorsRes, peersRes] = await Promise.all([
         api.getStatus(nodeUrl),
         api.getBlocks(nodeUrl),
         api.getPending(nodeUrl),
         api.getValidators(nodeUrl).catch(() => []),
+        // A node running an older build has no /peers; don't let that break the page.
+        api.getPeers(nodeUrl).catch(() => null),
       ]);
       setStatus(statusRes);
       setBlocks(blocksRes.slice().reverse());
       setPending(pendingRes);
       setValidators(validatorsRes);
+      setPeers(peersRes);
       setConnectionError(null);
     } catch (err) {
       setConnectionError(err instanceof Error ? err.message : 'Could not reach node');
       setStatus(null);
+      setPeers(null);
     }
   }, [nodeUrl, setConnectionError]);
 
@@ -46,6 +52,7 @@ export default function Home() {
   return (
     <main className="grid">
       <StatusPanel status={status} validators={validators} />
+      <PeersPanel peers={peers} />
       <TransactionForm nodeUrl={nodeUrl} refresh={refresh} />
       <PendingTable pending={pending} />
       <BlocksTable blocks={blocks} />
