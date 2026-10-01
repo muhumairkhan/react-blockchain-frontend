@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useCallback,useEffect, useState } from "react";
 import { NavLink, Outlet } from "react-router";
 import Header from "./../components/Header";
 import { WalletProvider } from "./context/WalletContext";
+import { api } from './../api';
 
 // Sits above both routes in router.jsx, so Home and Wallet share this one
 // Header instance (and the nodeUrl it points at) instead of each keeping
@@ -11,6 +12,20 @@ export default function Layout() {
   const [urlInput, setUrlInput] = useState(nodeUrl);
   const [connectionError, setConnectionError] = useState(null);
 
+  const [validators, setValidators] = useState([]);
+
+  const onload = useCallback(async () => {
+      
+        const [validatorsRes] = await Promise.all([
+          api.getValidators(nodeUrl).catch(() => []),
+        ]);
+        setValidators(validatorsRes);
+    }, [nodeUrl, setConnectionError]);
+
+    useEffect(function(){
+      onload();
+    },[]);
+
   return (
     <div className="page">
       <Header
@@ -19,6 +34,7 @@ export default function Layout() {
         setUrlInput={setUrlInput}
         setNodeUrl={setNodeUrl}
         connectionError={connectionError}
+        validators={validators}
       />
 
       <nav className="main-nav">

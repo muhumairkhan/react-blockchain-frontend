@@ -37,8 +37,11 @@ export default function StatusPanel({ status, validators }) {
     );
   }
 
-  const currentProposer = validators[status.currentProposerIndex] ?? null;
-  const nextProposer = validators[status.nextProposerIndex] ?? null;
+  const currentProposerPublicKey = validators[status.currentProposerIndex].publicKey ?? null;
+  const currentProposerName = validators[status.currentProposerIndex].name ?? null;
+
+  const nextProposerPublicKey = validators[status.nextProposerIndex].publicKey ?? null;
+  const nextProposerName = validators[status.nextProposerIndex].name ?? null;
 
   return (
     <section className="panel">
@@ -68,11 +71,13 @@ export default function StatusPanel({ status, validators }) {
         </dd>
         <dt>Current Proposer</dt>
         <dd className="mono-value">
-          {currentProposer ? short(currentProposer) : 'Calculating...'}
+          {currentProposerName ? currentProposerName : 'Calculating...'}
+          ({currentProposerPublicKey ? short(currentProposerPublicKey) : 'Calculating...'})
         </dd>
         <dt>Next Proposer</dt>
         <dd className="mono-value">
-          {nextProposer ? short(nextProposer) : 'Calculating...'}
+          {nextProposerName ? nextProposerName : 'Calculating...'}
+          ({nextProposerPublicKey ? short(nextProposerPublicKey) : 'Calculating...'})
         </dd>
       </dl>
     </section>
