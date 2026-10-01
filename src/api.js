@@ -1,40 +1,63 @@
-async function request(baseUrl, path, init) {
-  const res = await fetch(`${baseUrl}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
-    ...init,
-  });
+let ws = null;
+const pendingRequests = new Map();
+const eventListeners = new Set();
 
-  let body = null;
-  try {
-    body = await res.json();
-  } catch {
-    // no JSON body
-  }
+// Initialize the single persistent connection
+export function connectWS(wsUrl) {
+  ws = new WebSocket(wsUrl);
 
-  if (!res.ok) {
-    const message = body?.error || `Request failed with status ${res.status}`;
-    throw new Error(message);
-  }
+  ws.onmessage = (event) => {
+    const msg = JSON.parse(event.data);
 
-  return body;
+    // Context A: It's an async request reply from our RPC framework
+    if (msg.id && pendingRequests.has(msg.id)) {
+      const { resolve, reject } = pendingRequests.get(msg.id);
+      pendingRequests.delete(msg.id);
+
+      if (msg.status >= 200 && msg.status < 300) {
+        resolve(msg.data);
+      } else {
+        reject(new Error(msg.data?.error || `Request failed with status ${msg.status}`));
+      }
+    } 
+    // Context B: It's a true live event push from the blockchain network
+    else if (msg.event) {
+      eventListeners.forEach(callback => callback(msg.event, msg.data));
+    }
+  };
+
+  ws.onclose = () => console.log('WS Connection dropped. Reconnecting...');
 }
 
+// Re-creates your `request` engine matching your existing exact API payload
+function request(action, payload = {}) {
+  return new Promise((resolve, reject) => {
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      return reject(new Error('WebSocket is not connected'));
+    }
+
+    const id = Math.random().toString(36).substring(2, 9);
+    pendingRequests.set(id, { resolve, reject });
+
+    ws.send(JSON.stringify({ id, action, payload }));
+  });
+}
+
+// Your updated API client object (dropping 'baseUrl' signatures as it lives natively inside the stream)
 export const api = {
-  getStatus: (baseUrl) => request(baseUrl, '/status'),
-  getBlocks: (baseUrl) => request(baseUrl, '/blocks'),
-  getPending: (baseUrl) => request(baseUrl, '/pending'),
-  getValidators: (baseUrl) => request(baseUrl, '/validators'),
-  getPeers: (baseUrl) => request(baseUrl, '/peers'),
-  getAccount: (baseUrl, address) => request(baseUrl, `/accounts/${address}`),
+  getStatus: () => request('/status'),
+  getBlocks: () => request('/blocks'),
+  getPending: () => request('/pending'),
+  getValidators: () => request('/validators'),
+  getPeers: () => request('/peers'),
+  getAccount: (address) => request('/accounts', { address }),
+  
+  submitTransaction: (tx) => request('/transactions', tx),
+  proposeBlock: () => request('/propose'),
 
-  submitTransaction: (baseUrl, tx) =>
-    request(baseUrl, '/transactions', {
-      method: 'POST',
-      body: JSON.stringify(tx),
-    }),
-
-  proposeBlock: (baseUrl) =>
-    request(baseUrl, '/propose', {
-      method: 'POST',
-    }),
+  // ✨ Added Bonus: Listen to live network events directly!
+  subscribe: (callback) => {
+    eventListeners.add(callback);
+    return () => eventListeners.delete(callback); // Unsubscribe handler
+  }
 };
