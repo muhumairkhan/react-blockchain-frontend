@@ -33,7 +33,7 @@ function Wallet() {
 
   const hasWallets = (wallets || []).length > 0;
 
-  // Shared by create + import: refresh the list, select the wallet, load its balance.
+  // create + import: refresh the list, select the wallet, load its balance.
   async function activateWallet(name) {
     setWallets(listWallets() || []);
     setSelected(name);
