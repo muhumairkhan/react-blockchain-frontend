@@ -4,7 +4,7 @@ import Header from "./../components/Header";
 import { WalletProvider } from "./context/WalletContext";
 import { api } from './../api';
 
-// Sits above both routes in router.jsx, so Home and Wallet share this one
+// Sits above both routes in router.jsx
 // Header instance (and the nodeUrl it points at) instead of each keeping
 // their own copy.
 export default function Layout() {
