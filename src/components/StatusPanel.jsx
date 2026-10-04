@@ -47,8 +47,6 @@ export default function StatusPanel({ status, validators }) {
     );
   }
 
-  console.log(validators);
-
   const currentProposer = validators[status.currentProposerIndex];
   const nextProposer = validators[status.nextProposerIndex];
 
