@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { NavLink, Outlet } from "react-router";
 import Header from "./../components/Header";
 import { WalletProvider } from "./context/WalletContext";
@@ -6,7 +6,7 @@ import { api } from "./../api";
 
 // Sits above both routes in router.jsx
 // Header instance (and the nodeUrl it points at) instead of each keeping
-// their own copy.
+// own copy.
 export default function Layout() {
   const [nodeUrl, setNodeUrl] = useState("http://localhost:3000");
   const [urlInput, setUrlInput] = useState(nodeUrl);
