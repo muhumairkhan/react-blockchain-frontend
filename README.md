@@ -32,4 +32,4 @@ Opens on `http://localhost:5173`. Use the port shortcuts (`:3000`, `:3001`,
 to — each node's API runs on its own port, so this lets you point the same
 frontend at any node in the network.
 
-Status/pending/blocks poll every 3 seconds while connected.
+Connection to core logic using Websocket connection.
