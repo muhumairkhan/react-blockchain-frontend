@@ -1,42 +1,18 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { NavLink, Outlet } from "react-router";
 import Header from "./../components/Header";
 import { WalletProvider } from "./context/WalletContext";
-import { api } from "./../api";
 
-// Sits above both routes in router.jsx
-// Header instance (and the nodeUrl it points at) instead of each keeping
-// own copy.
+// The single endpoint the app talks to. In production this is the gateway
+// (load balancer in front of full nodes); on localhost it's the full node.
+const NODE_URL = import.meta.env.VITE_NODE_URL || "http://localhost:3099";
+
 export default function Layout() {
-  const [nodeUrl, setNodeUrl] = useState("http://localhost:3000");
-  const [urlInput, setUrlInput] = useState(nodeUrl);
   const [connectionError, setConnectionError] = useState(null);
-
-  const [validators, setValidators] = useState([]);
-
-  useEffect(() => {
-    let cancelled = false;
-    api
-      .getValidators(nodeUrl)
-      .catch(() => [])
-      .then((v) => {
-        if (!cancelled) setValidators(v);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [nodeUrl]);
 
   return (
     <div className="page">
-      <Header
-        nodeUrl={nodeUrl}
-        urlInput={urlInput}
-        setUrlInput={setUrlInput}
-        setNodeUrl={setNodeUrl}
-        connectionError={connectionError}
-        validators={validators}
-      />
+      <Header connectionError={connectionError} />
 
       <nav className="main-nav">
         <NavLink
@@ -56,13 +32,12 @@ export default function Layout() {
 
       {connectionError && (
         <div className="banner banner-error">
-          Can't reach {nodeUrl} — {connectionError}
+          Can't reach the network — {connectionError}
         </div>
       )}
 
-      {/* Provider lives here (not in index.jsx) so it can receive nodeUrl */}
-      <WalletProvider nodeUrl={nodeUrl}>
-        <Outlet context={{ nodeUrl, setConnectionError }} />
+      <WalletProvider nodeUrl={NODE_URL}>
+        <Outlet context={{ nodeUrl: NODE_URL, setConnectionError }} />
       </WalletProvider>
     </div>
   );

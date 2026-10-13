@@ -9,8 +9,8 @@
   --success: #4fa97d;
   --error: #e5484d;
 
-  --font-ui: 'Inter', system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --font-ui: "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
 }
 
 * {
@@ -73,54 +73,9 @@ input {
   flex-shrink: 0;
 }
 
-.beacon[data-connected='true'] {
+.beacon[data-connected="true"] {
   background: var(--success);
   box-shadow: 0 0 0 3px rgba(79, 169, 125, 0.18);
-}
-
-.connect-form {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-}
-
-.quick-ports {
-  display: flex;
-  gap: 4px;
-}
-
-.quick-port {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--text-dim);
-  padding: 6px 8px;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.quick-port:hover {
-  color: var(--text);
-  border-color: var(--text-dim);
-}
-
-.quick-port[data-active='true'] {
-  color: var(--accent);
-  border-color: var(--accent-dim);
-  background: rgba(232, 162, 61, 0.08);
-}
-
-.url-input {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  color: var(--text);
-  padding: 7px 10px;
-  border-radius: 4px;
-  min-width: 220px;
 }
 
 .btn-primary,
@@ -234,12 +189,12 @@ input {
   border: 1px solid var(--border);
 }
 
-.tag[data-role='validator'] {
+.tag[data-role="validator"] {
   color: var(--accent);
   border-color: var(--accent-dim);
 }
 
-.tag[data-role='observer'] {
+.tag[data-role="observer"] {
   color: var(--text-dim);
 }
 
@@ -321,17 +276,7 @@ input {
   .status-grid dd {
     text-align: left;
   }
-
-  .connect-form {
-    width: 100%;
-  }
-
-  .url-input {
-    flex: 1;
-    min-width: 0;
-  }
 }
-
 
 /* Nav added in App.jsx's Layout */
 .main-nav {
