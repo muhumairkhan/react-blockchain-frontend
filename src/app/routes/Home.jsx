@@ -70,7 +70,7 @@ export default function Home() {
   return (
     <main className="grid">
       <StatusPanel status={status} validators={validators} />
-      <PeersPanel peers={peers} />
+      <PeersPanel peers={peers} validators={validators} nodeUrl={nodeUrl} />
       <TransactionForm nodeUrl={nodeUrl} refresh={refresh} />
       <PendingTable pending={pending} />
       <BlocksTable blocks={blocks} />
