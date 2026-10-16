@@ -178,15 +178,20 @@ export default function TransactionForm({ nodeUrl, refresh }) {
           <input
             value={form.amount}
             onChange={(e) => setForm({ ...form, amount: e.target.value })}
-            inputMode="decimal"
-            placeholder="0.0"
+            inputMode="numeric"
+            placeholder="0"
             disabled={!wallet?.address || submitting}
             style={
-              isOverspending
+              isOverspending || isInvalidAmount
                 ? { borderColor: "red", backgroundColor: "#fff5f5" }
                 : {}
             }
           />
+          {isInvalidAmount && (
+            <small style={{ color: "red" }}>
+              Whole numbers only, greater than 0.
+            </small>
+          )}
         </label>
 
         <label>
@@ -203,13 +208,17 @@ export default function TransactionForm({ nodeUrl, refresh }) {
         <button
           type="submit"
           className="btn-primary"
-          disabled={submitting || !wallet?.address || isOverspending}
+          disabled={
+            submitting || !wallet?.address || isOverspending || isInvalidAmount
+          }
         >
           {submitting
             ? "Signing & sending…"
-            : isOverspending
-              ? "Insufficient Funds"
-              : "Send"}
+            : isInvalidAmount
+              ? "Invalid Amount"
+              : isOverspending
+                ? "Insufficient Funds"
+                : "Send"}
         </button>
       </form>
 
