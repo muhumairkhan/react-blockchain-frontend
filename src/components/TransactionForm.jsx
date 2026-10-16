@@ -3,6 +3,18 @@ import { api } from "../api";
 import { buildAndSignTransaction } from "../lib/transaction";
 import { useWallet } from "./../app/context/WalletContext";
 
+// The chain only accepts whole-number amounts (safe integers) greater than 0.
+// The regex also rejects things Number() would quietly accept: "1e3", "0x10", "1.5", "-2".
+function parseAmount(raw) {
+  const str = String(raw).trim();
+  if (str === "") return { empty: true, valid: false, value: NaN };
+  if (!/^\d+$/.test(str)) return { empty: false, valid: false, value: NaN };
+  const value = Number(str);
+  if (!Number.isSafeInteger(value) || value <= 0)
+    return { empty: false, valid: false, value: NaN };
+  return { empty: false, valid: true, value };
+}
+
 export default function TransactionForm({ nodeUrl, refresh }) {
   // Pull the pre-loaded global wallet data and state flag from your Context layer
   const { selected, wallet, isLoaded, syncWalletAndNodeDetails } = useWallet();
@@ -38,26 +50,15 @@ export default function TransactionForm({ nodeUrl, refresh }) {
       return;
     }
 
-    // The chain only accepts whole-number amounts (safe integers).
-    // The regex also rejects things Number() would quietly accept: "1e3", "0x10", "1.5", "-2".
-    const amountStr = form.amount.trim();
-    if (!/^\d+$/.test(amountStr) || !Number.isSafeInteger(Number(amountStr))) {
+    const parsed = parseAmount(form.amount);
+    if (!parsed.valid) {
       setTxMessage({
         kind: "error",
-        text: "Amount must be a whole number (no decimals).",
+        text: "Amount must be a whole number greater than 0 (no decimals).",
       });
       return;
     }
-
-    const sendAmount = Number(amountStr);
-
-    if (sendAmount <= 0) {
-      setTxMessage({
-        kind: "error",
-        text: "Transaction amount must be greater than 0.",
-      });
-      return;
-    }
+    const sendAmount = parsed.value;
 
     // Proactive Balance validation guard clause
     const currentBalance = Number(wallet.balance);
@@ -112,11 +113,12 @@ export default function TransactionForm({ nodeUrl, refresh }) {
   // Pre-calculate visual states for real-time warning indicators
   const availableBalance = wallet?.balance !== undefined ? wallet.balance : "—";
   const parsedBalance = Number(wallet?.balance);
-  const parsedAmount = Number(form.amount);
+  const parsedAmount = parseAmount(form.amount);
+  const isInvalidAmount = !parsedAmount.empty && !parsedAmount.valid;
   const isOverspending =
+    parsedAmount.valid &&
     !Number.isNaN(parsedBalance) &&
-    !Number.isNaN(parsedAmount) &&
-    parsedAmount > parsedBalance;
+    parsedAmount.value > parsedBalance;
 
   return (
     <section className="panel panel-wide">
